@@ -17,5 +17,14 @@ class AIService:
 
         return response.choices[0].message.content
 
-    def suggrest_similar_books(self, title, author):
-        pass
+    def suggest_similar_books(self, title, author):
+        prompt = f"Generate a list of 2-3 books that are similar to the book with the given title: {title} and author: {author}."
+        
+        response = self.client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        return response.choices[0].message.content
