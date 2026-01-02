@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from services.ai_service import AIService
+from services.book_service import BookService
 import os
 
 # Load environment variables
@@ -19,6 +20,9 @@ supabase: Client = create_client(
 # Initialize AI service
 ai_service = AIService()
 
+# Initialize Book service
+book_service = BookService(supabase)
+
 #POST requests: Create R U D
 @app.route('/books', methods=['POST'])
 def create_book():
@@ -27,29 +31,26 @@ def create_book():
     if 'title' not in new_book or 'author' not in new_book:
         return jsonify({'error': 'Missing title or author'}), 400
  
-    response = supabase.table("books").insert({
-        'title': new_book['title'],
-        'author': new_book['author']
-    }).execute()
+    response = book_service.create_book(new_book['title'], new_book['author'])
 
-    return jsonify(response.data[0]), 201
+    return jsonify(response), 201
 
 #GET requests: C Read U D
 @app.route('/books')
 def get_books():
-    response = supabase.table("books").select("*").execute()
+    response = book_service.get_books()
     
     return jsonify({
-        'books': response.data
+        'books': response
     })
 
 @app.route('/books/<int:book_id>')
 def get_book(book_id):
-    response = supabase.table("books").select("*").eq('id', book_id).execute()
-    if len(response.data) == 0:
+    response = book_service.get_book(book_id)
+    if response is None:
         return jsonify({'message': 'Book not found'}), 404
     
-    return jsonify(response.data[0]), 200
+    return jsonify(response), 200
 
 #PUT requests: C R Update D
 @app.route('/books/<int:book_id>', methods=['PUT'])
@@ -59,22 +60,19 @@ def update_book(book_id):
     if 'title' not in update_data or 'author' not in update_data:
         return jsonify({'error': 'Missing title or author'}), 400
 
-    response = supabase.table('books').update({
-        'title': update_data['title'],
-        'author': update_data['author']
-    }).eq('id', book_id).execute()
+    response = book_service.update_book(book_id, update_data['title'], update_data['author'])
 
-    if len(response.data) == 0:
+    if response is None:
         return jsonify({'message': 'Book not found'}), 404
 
-    return jsonify(response.data[0]), 200
+    return jsonify(response), 200
 
 #DELETE requests: C R U Delete
 @app.route('/books/<int:book_id>', methods=['DELETE'])
 def delete_book(book_id):
-    response = supabase.table('books').delete().eq('id', book_id).execute()
+    response = book_service.delete_book(book_id)
     
-    if len(response.data) == 0:
+    if response is None:
         return jsonify({'message': 'Book not found'}), 404
 
     return jsonify({'message': 'Book deleted'}), 200
