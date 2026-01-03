@@ -60,7 +60,7 @@ def update_book(book_id):
     if 'title' not in update_data or 'author' not in update_data:
         return jsonify({'error': 'Missing title or author'}), 400
 
-    response = book_service.update_book(book_id, update_data['title'], update_data['author'])
+    response = book_service.update_book(book_id, title=update_data['title'], author=update_data['author'])
 
     if response is None:
         return jsonify({'message': 'Book not found'}), 404
@@ -80,12 +80,9 @@ def delete_book(book_id):
 #AI requests
 @app.route('/books/<int:book_id>/summary', methods=['GET'])
 def get_book_summary(book_id):
-    response = supabase.table('books').select('title, author, summary').eq('id', book_id).execute()
-    
-    if len(response.data) == 0:
+    book = book_service.get_book(book_id)
+    if book is None:
         return jsonify({'message': 'Book not found'}), 404
-    
-    book = response.data[0]
 
     print("Book data:", book)
     print("Summary field:", book.get('summary'))
@@ -102,9 +99,7 @@ def get_book_summary(book_id):
     
     print("Summary generated")
 
-    supabase.table('books').update({
-        'summary': summary
-    }).eq('id', book_id).execute()
+    book_service.update_book(book_id, summary=summary)
 
     return jsonify({
         'book': book,
@@ -114,13 +109,11 @@ def get_book_summary(book_id):
 
 @app.route('/books/<int:book_id>/similar', methods=['GET'])
 def get_similar_books(book_id):
-    response = supabase.table('books').select('title, author, similar_books').eq('id', book_id).execute()
+    book = book_service.get_book(book_id)
     
-    if len(response.data) == 0:
+    if book is None:
         return jsonify({'message': 'Book not found'}), 404
     
-    book = response.data[0]
-
     if book.get('similar_books'):
         return jsonify({
             'book': book,
@@ -130,9 +123,7 @@ def get_similar_books(book_id):
     
     similar_books = ai_service.suggest_similar_books(book['title'], book['author'])
     
-    supabase.table('books').update({
-        'similar_books': similar_books
-    }).eq('id', book_id).execute()
+    book_service.update_book(book_id, similar_books=similar_books)
     
     return jsonify({
         'book': book,
