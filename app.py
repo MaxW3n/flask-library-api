@@ -50,17 +50,18 @@ def get_book(book_id):
     if response is None:
         return jsonify({'message': 'Book not found'}), 404
     
-    return jsonify(response), 200
+    return jsonify({
+        'title': response['title'],
+        'author': response['author'],
+        'genre': response['genre']
+    }), 200
 
 #PUT requests: C R Update D
 @app.route('/books/<int:book_id>', methods=['PUT'])
 def update_book(book_id):
     update_data = request.get_json()
-    
-    if 'title' not in update_data or 'author' not in update_data:
-        return jsonify({'error': 'Missing title or author'}), 400
 
-    response = book_service.update_book(book_id, title=update_data['title'], author=update_data['author'])
+    response = book_service.update_book(book_id, **update_data)
 
     if response is None:
         return jsonify({'message': 'Book not found'}), 404
@@ -77,36 +78,33 @@ def delete_book(book_id):
 
     return jsonify({'message': 'Book deleted'}), 200
 
-#AI requests
+#Summarize
 @app.route('/books/<int:book_id>/summary', methods=['GET'])
 def get_book_summary(book_id):
     book = book_service.get_book(book_id)
     if book is None:
         return jsonify({'message': 'Book not found'}), 404
 
-    print("Book data:", book)
-    print("Summary field:", book.get('summary'))
-
     if book.get('summary'):
         return jsonify({
-            'book': book,
+            'title': book['title'],
+            'author': book['author'],
             'summary': book['summary'],
             'cached': True
         }), 200
     
-    print("Generating summary...")
     summary = ai_service.generate_book_summary(book['title'], book['author'])
-    
-    print("Summary generated")
 
     book_service.update_book(book_id, summary=summary)
 
     return jsonify({
-        'book': book,
+        'title': book['title'],
+        'author': book['author'],
         'summary': summary,
         'cached': False
     }), 200
 
+#Similar Books
 @app.route('/books/<int:book_id>/similar', methods=['GET'])
 def get_similar_books(book_id):
     book = book_service.get_book(book_id)
@@ -116,7 +114,8 @@ def get_similar_books(book_id):
     
     if book.get('similar_books'):
         return jsonify({
-            'book': book,
+            'title': book['title'],
+            'author': book['author'],
             'similar_books': book['similar_books'],
             'cached': True
         }), 200
@@ -126,8 +125,36 @@ def get_similar_books(book_id):
     book_service.update_book(book_id, similar_books=similar_books)
     
     return jsonify({
-        'book': book,
+        'title': book['title'],
+        'author': book['author'],
         'similar_books': similar_books,
+        'cached': False
+    }), 200
+
+#Genre
+@app.route('/books/<int:book_id>/genre', methods=['GET'])
+def get_book_genre(book_id):
+    book = book_service.get_book(book_id)
+    
+    if book is None:
+        return jsonify({'message': 'Book not found'}), 404
+    
+    if book.get('genre'):
+        return jsonify({
+            'title': book['title'],
+            'author': book['author'],
+            'genre': book['genre'],
+            'cached': True
+        }), 200
+    
+    genre = ai_service.get_genre(book['title'], book['author'])
+    
+    book_service.update_book(book_id, genre=genre)
+    
+    return jsonify({
+        'title': book['title'],
+        'author': book['author'],
+        'genre': genre,
         'cached': False
     }), 200
 

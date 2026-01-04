@@ -28,3 +28,17 @@ class AIService:
         )
 
         return response.choices[0].message.content
+
+    def get_genre(self, title, author):
+        
+        prompt = f"From the book with the given title: {title} and author: {author}, return the genre that fits best for the book. Generate only the genre name, no other text."
+
+        response = self.client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=5
+        )
+        
+        return response.choices[0].message.content

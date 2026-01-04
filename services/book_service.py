@@ -6,7 +6,7 @@ class BookService:
         self.supabase = supabase_client
 
     def get_book(self, book_id):
-        response = self.supabase.table('books').select('title, author').eq('id', book_id).execute()
+        response = self.supabase.table('books').select('*').eq('id', book_id).execute()
         
         if len(response.data) == 0:
             return None
@@ -14,7 +14,7 @@ class BookService:
         return response.data[0]
     
     def get_books(self):
-        response = self.supabase.table('books').select('*').execute()
+        response = self.supabase.table('books').select('title, author, genre').execute()
         
         return response.data
     
